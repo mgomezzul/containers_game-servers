@@ -1,0 +1,48 @@
+#!/bin/bash
+# Startup script for steam dedicated server.
+# REMEMBER TO DROP Privileges for steam (su steam -c '').
+
+# CUSTOM=/data/custom_server
+
+set -u -e
+echo '--------------------------------------'
+echo 'Propagating steam user permissions ...'
+PUID=${PUID:-911}
+PGID=${PGID:-911}
+groupmod -o -g ${PGID} steam
+usermod -o -u ${PUID} steam
+mkdir -p ${SERVER_DIR}
+chown steam:steam -R /data ${SERVER_DIR}
+# chmod 0700 /data/custom_server
+echo "PUID=$(id -u steam)"
+echo "PGID=$(id -g steam)"
+
+if [ ${UPDATE_OS} -eq 1 ]; then
+  echo '--------------------------------------'
+  echo 'Updating image OS ...'
+  apt-get --quiet update && apt-get --quiet --yes upgrade
+fi
+if [ ${UPDATE_STEAM} -eq 1 ]; then
+  echo '--------------------------------------'
+  echo "Updating steamcmd for ${PLATFORM} ..."
+  su steam -c "steamcmd \
+    +@sSteamCmdForcePlatformType ${PLATFORM} \
+    +login anonymous \
+    +quit"
+fi
+if [ ${UPDATE_SERVER} -eq 1 ]; then
+  echo '--------------------------------------'
+  echo "Updating app ${STEAM_APP_ID} ..."
+  su steam -c "steamcmd \
+    +@sSteamCmdForcePlatformType ${PLATFORM} \
+    +force_install_dir ${SERVER_DIR} validate \
+    +login anonymous \
+    +app_update ${STEAM_APP_ID} \
+    ${STEAM_APP_EXTRAS} \
+    +quit"
+fi
+
+echo '--------------------------------------'
+echo "Handing startup over to ..."
+cd ${SERVER_DIR}
+exec xvfb-run wine Wreckfest.exe -s server_config=server_config.cfg

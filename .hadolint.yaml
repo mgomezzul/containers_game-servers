@@ -1,0 +1,4 @@
+ignored:
+  - DL3008 # warning: Pin versions in apt get install.
+  - DL3059 # info: Multiple consecutive `RUN` instructions. Consider consolidation.
+  - SC2086 # info: Double quote to prevent globbing and word splitting.
