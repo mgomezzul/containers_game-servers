@@ -3,8 +3,8 @@
 # REMEMBER TO DROP Privileges for steam (su steam -c '').
 
 # CUSTOM=/data/custom_server
-
-set -u -e
+set -x
+# set -u -e
 echo '--------------------------------------'
 echo 'Propagating steam user permissions ...'
 PUID=${PUID:-911}
@@ -24,9 +24,8 @@ if [ ${UPDATE_OS} -eq 1 ]; then
 fi
 if [ ${UPDATE_STEAM} -eq 1 ]; then
   echo '--------------------------------------'
-  echo "Updating steamcmd for ${PLATFORM} ..."
+  echo "Updating steamcmd for..."
   su steam -c "steamcmd \
-    +@sSteamCmdForcePlatformType ${PLATFORM} \
     +login anonymous \
     +quit"
 fi
@@ -34,15 +33,17 @@ if [ ${UPDATE_SERVER} -eq 1 ]; then
   echo '--------------------------------------'
   echo "Updating app ${STEAM_APP_ID} ..."
   su steam -c "steamcmd \
-    +@sSteamCmdForcePlatformType ${PLATFORM} \
-    +force_install_dir ${SERVER_DIR} validate \
+    +force_install_dir ${SERVER_DIR} \
     +login anonymous \
     +app_update ${STEAM_APP_ID} \
-    ${STEAM_APP_EXTRAS} \
     +quit"
 fi
 
 echo '--------------------------------------'
 echo "Handing startup over to ..."
 cd ${SERVER_DIR}
-exec wine64 ./Wreckfest_x64.exe -s server_config=server_config.cfg
+export LD_LIBRARY_PATH=${SERVER_DIR}:${SERVER_DIR}/bin
+pwd
+ls -lah
+exec ./srcds_linux -console -port 27015 +map market_coop +maxplayers 8
+

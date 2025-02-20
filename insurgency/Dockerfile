@@ -10,9 +10,7 @@ COPY debian.sources /etc/apt/sources.list.d/debian.sources
 
 ENV SERVER_DIR=/data/server \
     STEAM=/steam \
-    PLATFORM=windows \
-    STEAM_APP_ID=361580 \
-    STEAM_APP_EXTRAS='' \
+    STEAM_APP_ID=237410 \
     UPDATE_OS=0 \
     UPDATE_STEAM=1 \
     UPDATE_SERVER=1 \
@@ -35,6 +33,7 @@ RUN export LANG=en_US.UTF-8 && \
 			apt-utils \
 			ca-certificates \
 			gnupg \
+			lib32gcc-s1 \
 			locales \
 			nano \
 			software-properties-common \
@@ -43,30 +42,6 @@ RUN export LANG=en_US.UTF-8 && \
 		sed --in-place --expression='s/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
 		/usr/sbin/locale-gen 2> /dev/null && \
 		dpkg-reconfigure --frontend=noninteractive locales && \
-		# Add wine
-		dpkg --add-architecture i386 && \
-		wget -qO /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key && \
-		wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/debian/dists/bookworm/winehq-bookworm.sources && \
-		apt-get --quiet update && \
-		apt-get install --yes --install-recommends \
-			libsdl2-2.0-0 \
-			libsdl2-2.0-0:i386 \
-			libc6 \
-			libc6:i386 && \
-		apt-get --quiet --yes upgrade && \
-		apt-get install --yes --install-recommends \
-			lib32gcc-s1 \
-			winehq-stable \
-			winbind \
-			supervisor \
-			xvfb && \
-			apt-get install --yes --install-recommends \
-			cabextract \
-			unzip \
-			p7zip && \
-		# Add winetricks as an additional resource if needed for servers.
-		wget https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks -O /usr/bin/winetricks && \
-		chmod a+x /usr/bin/winetricks && \
 		# Auto-accept license and install steamcmd.
 		echo steam steam/question select 'I AGREE' | debconf-set-selections && \
 		echo steam steam/license note '' | debconf-set-selections && \
@@ -90,25 +65,6 @@ RUN export LANG=en_US.UTF-8 && \
 		ln -s ${STEAM}/.local/share/Steam/steamcmd/linux64 ${STEAM}/.steam/sdk64 && \
 		ln -s ${STEAM}/.steam/sdk32/steamclient.so ${STEAM}/.steam/sdk32/steamservice.so && \
 		ln -s ${STEAM}/.steam/sdk64/steamclient.so ${STEAM}/.steam/sdk64/steamservice.so && \
-		# winehq may potentially take ~5 minutes on first boot to launch, due to
-		# blocking on boot events:
-		#
-		#  _"0014:err:ole:get_local_server_stream Failed: 80004002"_
-		#  _"__wine_kernel_init boot event wait timed out"_
-		#
-		# Subsequent boots will not see the delay. We can mitigate this by updating wine
-		# before our first use.
-		#
-		# wineboot --update
-		# xvfb-run --autoservernum wineboot --update
-		#
-		# This is a suspected issue with the GCC build toolchain, but has not been
-		# resolved yet. See:
-		#    https://ubuntuforums.org/archive/index.php/t-1499348.html
-		#    https://bugs.winehq.org/show_bug.cgi?id=38653
-		echo 'Updating wine, ignore any errors ...' && \
-		su - steam -c 'wineboot --update' /dev/null 2>&1 && \
-		echo 'Wine update completed.' && \
 		mkdir -p /data && \
 		chown -R steam:steam ${STEAM} /data /docker && \
 		chmod 0755 /docker/* && \
@@ -135,4 +91,4 @@ ENTRYPOINT ["/docker/startup"]
 # For ports required by steam servcies, see:
 # https://support.steampowered.com/kb_article.php?ref=8571-GLVN-8711
 # Be sure to include any server-specific ports.
-EXPOSE 27015/tcp 27015/udp 27016/udp 33540/udp
+EXPOSE 27015/tcp 27015/udp
